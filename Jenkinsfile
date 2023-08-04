@@ -1,7 +1,7 @@
 pipeline {
   agent any
   stages {
-    stage('copy file to csv')
+    stage('copy file to csv') {
       steps {
         sh 'cd $WORKSPACE'
         sh 'pwd'
@@ -9,4 +9,4 @@ pipeline {
       }
     }
   } 
-
+}
