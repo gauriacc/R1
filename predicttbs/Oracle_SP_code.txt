@@ -1,0 +1,94 @@
+ CREATE OR REPLACE DIRECTORY CTEST AS 'C:\CTEST';
+
+GRANT READ,write ON DIRECTORY CTEST TO sys;
+
+
+-------------------------------------
+CREATE OR REPLACE procedure addfile (tbsname in varchar2, filename in varchar2, filesize in varchar2) as
+rt dba_tablespaces%rowtype;
+str_tbs varchar2(500);
+begin
+str_tbs := 'alter tablespace ' || tbsname || ' add datafile '''||filename|| ''' size '|| filesize;
+dbms_output.put_line(str_tbs);
+select * into rt from dba_tablespaces where tablespace_name=upper(tbsname);
+dbms_output.put_line('tablespace exists');
+EXECUTE IMMEDIATE str_tbs;
+  dbms_output.put_line('datafile was created');
+end;
+/
+
+
+--------------------------------------
+
+
+-------------------------------
+set serveroutput on;
+CREATE OR REPLACE procedure checktbs (tbsname in varchar2,fsize out decimal) as
+str_tbs varchar2(200);
+fdir varchar2(100);
+out_File  utl_file.FILE_TYPE;
+begin
+ fdir := 'test.txt';
+str_tbs := 'select (sum(bytes)/1024/1024)  from dba_free_space where tablespace_name=''' || tbsname ||'''';
+dbms_output.put_line(str_tbs);
+EXECUTE IMMEDIATE str_tbs into fsize;
+dbms_output.put_line(fsize);
+if fsize >= 1 then
+dbms_output.put_line('size is LESS');
+ out_File := utl_file.fopen('CTEST',fdir,'w');
+ utl_file.put_line(out_file , 'Hi this is text file!');
+  utl_file.fclose(out_file);
+end if;
+end;
+/
+---------------------------------
+declare
+filesize decimal(8,2);
+begin
+checktbs('USERS',filesize);
+dbms_output.put_line(filesize);
+end;
+/
+------------------------------------
+$tbs='USERS'
+write-host $tbs
+echo exit | sqlplus -s sys/tiger123 as sysdba "@C:\temp\checktbs.sql" $tbs 
+
+
+---------------
+begin
+
+  dbms_scheduler.create_program
+
+    (  program_name    => 'checkusedspace',
+       program_type    => 'EXECUTABLE',
+       program_action  => 'C:\Temp\checkusedspace.ps1',
+       enabled         =>  TRUE,
+       comments        => 'Program for checkusedspace.ps1'
+
+  );
+  end;
+  /
+
+
+  begin
+
+  dbms_scheduler.create_schedule
+
+    (
+
+       schedule_name   => 'checkusedspacesched',
+
+       start_date      =>  to_date('2023-08-03 00:0:00','yyyy-mm-dd hh24:mi:ss'),
+
+       end_date        =>  NULL,
+
+       repeat_interval => 'FREQ=MINUTELY;INTERVAL=5',           
+
+       comments        => 'Schedule for checkusedspace.ps'
+
+    );
+
+end;
+
+

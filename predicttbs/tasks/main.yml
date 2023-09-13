@@ -1,0 +1,25 @@
+---
+    - shell: |
+        cat /home/ansiblecontrol/tbs.log
+      register: out
+      delegate_to: localhost
+
+    - debug:
+        var: out.stdout
+      delegate_to: localhost      
+    - win_copy:
+        src: /home/ansiblecontrol/predicttbs/addfile.ps1
+        dest: 'C:\temp\'
+        remote_src: no
+
+    - win_copy:
+        src: /home/ansiblecontrol/predicttbs/addfile.sql
+        dest: 'C:\temp\'
+        remote_src: no
+
+    - name: Run remote PowerShell Script
+      win_command: powershell.exe -ExecutionPolicy ByPass -File C:\temp\addfile.ps1 {{ filename }} {{ filesize }} 
+      register: tbs
+
+    - debug:
+        var: tbs.stdout_lines

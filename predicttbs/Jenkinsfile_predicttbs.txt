@@ -1,0 +1,66 @@
+pipeline {
+  agent any
+    environment {
+     alert_disk = "/home/ansiblecontrol/tbs.log"
+     PATH="$PATH:/home/ansiblecontrol/.local/bin"
+    }
+    parameters {
+      string (
+        defaultValue: "D://oracle//oradata//ORCL//users02.dbf",
+        description: 'Please enter the datafile path',
+        name : 'filename'
+      )
+      string (
+        defaultValue: "10m",
+        description: 'Please enter the datafile size',
+        name : 'filesize'
+      )
+      string (
+        defaultValue: "28",
+        description: 'Please enter the size of tbs to predict',
+        name : 'used'
+      )
+      string (
+        defaultValue: "10",
+        description: 'Please enter the number of days to fill the size mentioned above',
+        name : 'days'
+      )
+      
+    }
+     
+    stages {
+      stage('Data preparation') {
+        steps {
+          
+            sh '''
+              cd /home/ansiblecontrol/predicttbs/
+              sh test.sh
+             '''
+          
+        }
+      }
+     stage('Predict days required') {
+        steps {
+          sh '''
+           cd /home/ansiblecontrol/predicttbs/
+           python3 predict1.py
+           '''
+        }
+      }
+     stage('Disk-Extension'){
+      when {
+        expression { readFile("${alert_disk}") == "extend_ts"  }
+      }
+      steps{
+       
+          sh '''
+            cd /home/ansiblecontrol/
+            ansible-playbook -i inventory.txt report.yml --extra-vars "filename=$filename filesize=$filesize"
+          '''
+        
+      }
+    }
+        
+    }
+   
+}
